@@ -26,49 +26,35 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 26,
-                        height: 26,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Colors.blue, Colors.teal, Colors.orange],
-                          ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(13), // تخليها دائرية
+                        child: Image.asset(
+                          'assets/images/app_logo.png', // مسار صورة اللوجو بتاعك
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.cover,
                         ),
                       ),
                       const SizedBox(width: 8),
                       const Text(
-                        'Zabet',
+                        'ZABET',
                         style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 28, // كبّرنا الحجم
+                          fontWeight: FontWeight.w900, // خليناه عريض جداً (Bold تقيل)
+                          letterSpacing: 2.0, // وسّعنا المسافات بين الحروف عشان تاخد العرض والطول
                           color: AppColors.primaryDark,
                         ),
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  const Icon(Icons.map_outlined, color: AppColors.primaryDark),
-                  const SizedBox(width: 16),
-                  Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.primaryDark, width: 1.5),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_none,
-                      color: AppColors.primaryDark,
-                      size: 20,
-                    ),
-                  ),
+
                 ],
               ),
               const SizedBox(height: 24),
 
               // 2. عنوان الترحيب
               const Text(
-                'Hello Officer!',
+                'HELLO ZABET!',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -77,21 +63,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // 3. شريط البحث
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Exercise, Muscle, Workout Program',
-                  hintStyle: TextStyle(color: AppColors.textGrey.withValues(alpha: 0.6), fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.textGrey),
-                  filled: true,
-                  fillColor: AppColors.searchFieldBg,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
+
               const SizedBox(height: 24),
 
               // 4. شبكة الخدمات - الصف الأول

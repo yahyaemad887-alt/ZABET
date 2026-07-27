@@ -19,10 +19,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/app_logo.png
+    - assets/images/app_logo.ico
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/app_logo.png"
+  image_path: "assets/images/app_logo.ico"
   min_sdk_android: 21
 
