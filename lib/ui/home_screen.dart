@@ -29,7 +29,7 @@ class HomeScreen extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(13), // تخليها دائرية
                         child: Image.asset(
-                          'assets/images/app_logo.png', // مسار صورة اللوجو بتاعك
+                          'assets/images/app_logo.ico', // مسار صورة اللوجو بتاعك
                           width: 28,
                           height: 28,
                           fit: BoxFit.cover,
@@ -41,7 +41,7 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 28, // كبّرنا الحجم
                           fontWeight: FontWeight.w900, // خليناه عريض جداً (Bold تقيل)
-                          letterSpacing: 2.0, // وسّعنا المسافات بين الحروف عشان تاخد العرض والطول
+                          letterSpacing: 1.0, // وسّعنا المسافات بين الحروف عشان تاخد العرض والطول
                           color: AppColors.primaryDark,
                         ),
                       ),
@@ -183,7 +183,7 @@ class HomeScreen extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.all(16.0), // مسافة أمان عشان الأيقونة متلمسش الإطار
                       child: Image.asset(
-                        "assets/images/app_logo.png", // مسار الأيقونة اللي هتصممها وتضيفها في الـ assets
+                        "assets/images/app_logo.ico", // مسار الأيقونة اللي هتصممها وتضيفها في الـ assets
                         fit: BoxFit.contain, // بيضمن إن الأيقونة تحافظ على أبعادها المربعة في النص
                       ),
                     ),
