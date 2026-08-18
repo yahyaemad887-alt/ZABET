@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ==========================================
 // 1. موديل بيانات الجسم ومحرك الحسابات الديناميكي
@@ -8,7 +10,7 @@ class UserMetrics {
   final double heightCm;
   final int age;
   final double activityMultiplier;
-  final bool? isRapidLoss; // أضفناها هنا عشان تقبلها الـ Home Screen من غير إيرور
+  final bool? isRapidLoss;
 
   const UserMetrics({
     required this.weightKg,
@@ -23,20 +25,18 @@ class ZabetCalculationEngine {
   final UserMetrics metrics;
   ZabetCalculationEngine(this.metrics);
 
-  // حساب السعرات المستهدفة (متغيرة حسب الوزن، الطول، العمر)
   double calculateTargetCalories() {
     double bmr = (10 * metrics.weightKg) + (6.25 * metrics.heightCm) - (5 * metrics.age) + 5;
     return bmr * metrics.activityMultiplier;
   }
 
-  // حساب هدف الترطيب باللتر حسب الوزن
   double calculateWaterGoalLiters() {
     return (metrics.weightKg * 0.035).clamp(2.0, 5.0);
   }
 }
 
 // ==========================================
-// 2. الشاشة الأولى: إدخال بيانات الجسم
+// 2. الشاشة الأولى: إدخال أو جلب بيانات الجسم
 // ==========================================
 class ZabetDietScreen extends StatefulWidget {
   const ZabetDietScreen({super.key});
@@ -51,6 +51,33 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
 
+  bool _isLoading = true;
+  UserMetrics? _savedMetrics;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSavedMetrics();
+  }
+
+  Future<void> _checkSavedMetrics() async {
+    final prefs = await SharedPreferences.getInstance();
+    final double? weight = prefs.getDouble('user_weight');
+    final double? height = prefs.getDouble('user_height');
+    final int? age = prefs.getInt('user_age');
+
+    if (weight != null && height != null && age != null) {
+      setState(() {
+        _savedMetrics = UserMetrics(weightKg: weight, heightCm: height, age: age);
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   void dispose() {
     _weightController.dispose();
@@ -59,11 +86,16 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
     super.dispose();
   }
 
-  void _calculateAndNavigate(BuildContext context) {
+  void _calculateAndSave(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       final double weight = double.parse(_weightController.text);
       final double height = double.parse(_heightController.text);
       final int age = int.parse(_ageController.text);
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('user_weight', weight);
+      await prefs.setDouble('user_height', height);
+      await prefs.setInt('user_age', age);
 
       final userMetrics = UserMetrics(
         weightKg: weight,
@@ -72,7 +104,8 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
         activityMultiplier: 1.2,
       );
 
-      Navigator.push(
+      if (!mounted) return;
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (context) => ZabetDashboardScreen(userMetrics: userMetrics),
@@ -83,10 +116,21 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: Colors.deepOrange)),
+      );
+    }
+
+    if (_savedMetrics != null) {
+      return ZabetDashboardScreen(userMetrics: _savedMetrics!);
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('بيانات جسمك', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('body_metrics_title'.tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
@@ -102,15 +146,15 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
               TextFormField(
                 controller: _weightController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'الوزن (كجم)',
-                  hintText: 'أدخل الوزن كجم',
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF6A1B9A))),
+                decoration: InputDecoration(
+                  labelText: 'weight_lbl'.tr(),
+                  hintText: 'weight_hint'.tr(),
+                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.deepOrange)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty || double.tryParse(value) == null) {
-                    return 'يرجى إدخال وزن صحيح';
+                    return 'weight_err'.tr();
                   }
                   return null;
                 },
@@ -119,15 +163,15 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
               TextFormField(
                 controller: _heightController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'الطول (سم)',
-                  hintText: 'أدخل الطول سم',
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF6A1B9A))),
+                decoration: InputDecoration(
+                  labelText: 'height_lbl'.tr(),
+                  hintText: 'height_hint'.tr(),
+                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.deepOrange)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty || double.tryParse(value) == null) {
-                    return 'يرجى إدخال طول صحيح';
+                    return 'height_err'.tr();
                   }
                   return null;
                 },
@@ -136,34 +180,34 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
               TextFormField(
                 controller: _ageController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'العمر',
-                  hintText: 'أدخل العمر',
-                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
-                  focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF6A1B9A))),
+                decoration: InputDecoration(
+                  labelText: 'age_lbl'.tr(),
+                  hintText: 'age_hint'.tr(),
+                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.deepOrange)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty || int.tryParse(value) == null) {
-                    return 'يرجى إدخال عمر صحيح';
+                    return 'age_err'.tr();
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 56),
               ElevatedButton(
-                onPressed: () => _calculateAndNavigate(context),
+                onPressed: () => _calculateAndSave(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF3E5F5),
-                  foregroundColor: const Color(0xFF4A148C),
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text(
-                  'احسب وجباتي',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                child: Text(
+                  'calc_meals_btn'.tr(),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
@@ -175,7 +219,7 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
 }
 
 // ==========================================
-// 3. الشاشة الثانية: الداشبورد التفاعلي المربوط بالسعرات
+// 3. الشاشة الثانية: الداشبورد التفاعلي مع زرار الريسيت والترجمة
 // ==========================================
 class ZabetDashboardScreen extends StatefulWidget {
   final UserMetrics userMetrics;
@@ -188,6 +232,19 @@ class ZabetDashboardScreen extends StatefulWidget {
 class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
   final Map<int, bool> _mealStatus = {0: false, 1: false, 2: false, 3: false};
 
+  Future<void> _resetUserMetrics(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_weight');
+    await prefs.remove('user_height');
+    await prefs.remove('user_age');
+
+    if (!context.mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ZabetDietScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final engine = ZabetCalculationEngine(widget.userMetrics);
@@ -197,10 +254,17 @@ class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9FB),
       appBar: AppBar(
-        title: const Text('Zabet - Dashboard', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+        title: Text('diet_dashboard_title'.tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.black),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, color: Colors.deepOrange),
+            tooltip: 'reset_metrics'.tr(),
+            onPressed: () => _resetUserMetrics(context),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -212,19 +276,19 @@ class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
               children: [
                 Expanded(
                   child: _buildCircularMetricCard(
-                    title: 'Target Calories',
+                    title: 'target_calories'.tr(),
                     value: targetCalories.toStringAsFixed(0),
-                    unit: 'Kcal',
+                    unit: 'kcal_unit'.tr(),
                     progress: 0.85,
-                    progressColor: const Color(0xFF334411),
+                    progressColor: Colors.deepOrange,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildCircularMetricCard(
-                    title: 'Hydration Goal',
+                    title: 'hydration_goal'.tr(),
                     value: waterGoal.toStringAsFixed(1),
-                    unit: 'Liters',
+                    unit: 'liters_unit'.tr(),
                     progress: 0.70,
                     progressColor: Colors.blue,
                   ),
@@ -232,37 +296,37 @@ class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
               ],
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Egyptian Military Fuel Plan',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            Text(
+              'fuel_plan_title'.tr(),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
             ),
             const SizedBox(height: 12),
             _buildMealCard(
               index: 0,
-              title: 'الإفطار (وجبة 1)',
-              calories: '${(targetCalories * 0.25).toStringAsFixed(0)} Kcal',
-              description: 'بيض مقلي أو بوش + جبن قريش + خبز أسمر',
+              title: 'meal_1_title'.tr(),
+              calories: '${(targetCalories * 0.25).toStringAsFixed(0)} ${'kcal_unit'.tr()}',
+              description: 'meal_1_desc'.tr(),
             ),
             const SizedBox(height: 12),
             _buildMealCard(
               index: 1,
-              title: 'الغداء (وجبة 2)',
-              calories: '${(targetCalories * 0.35).toStringAsFixed(0)} Kcal',
-              description: 'أرز مصري + صدور دجاج مشوية + سلطة خضراء',
+              title: 'meal_2_title'.tr(),
+              calories: '${(targetCalories * 0.35).toStringAsFixed(0)} ${'kcal_unit'.tr()}',
+              description: 'meal_2_desc'.tr(),
             ),
             const SizedBox(height: 12),
             _buildMealCard(
               index: 2,
-              title: 'السناك (وجبة 3)',
-              calories: '${(targetCalories * 0.15).toStringAsFixed(0)} Kcal',
-              description: 'موز + مكسرات أو زبادي يوناني',
+              title: 'meal_3_title'.tr(),
+              calories: '${(targetCalories * 0.15).toStringAsFixed(0)} ${'kcal_unit'.tr()}',
+              description: 'meal_3_desc'.tr(),
             ),
             const SizedBox(height: 12),
             _buildMealCard(
               index: 3,
-              title: 'العشاء (وجبة 4)',
-              calories: '${(targetCalories * 0.25).toStringAsFixed(0)} Kcal',
-              description: 'مكرونة مسلوقة + تونة أو صدور دجاج',
+              title: 'meal_4_title'.tr(),
+              calories: '${(targetCalories * 0.25).toStringAsFixed(0)} ${'kcal_unit'.tr()}',
+              description: 'meal_4_desc'.tr(),
             ),
           ],
         ),
@@ -283,12 +347,12 @@ class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.06), blurRadius: 8, spreadRadius: 2),
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.06), blurRadius: 8, spreadRadius: 2),
         ],
       ),
       child: Column(
         children: [
-          Text(title, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+          Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
           const SizedBox(height: 12),
           Stack(
             alignment: Alignment.center,
@@ -329,14 +393,14 @@ class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isChecked ? const Color(0xFF334411).withOpacity(0.04) : Colors.white,
+        color: isChecked ? Colors.deepOrange.withValues(alpha: 0.04) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isChecked ? const Color(0xFF334411) : Colors.transparent,
+          color: isChecked ? Colors.deepOrange : Colors.transparent,
           width: 1.2,
         ),
         boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 6, spreadRadius: 2),
+          BoxShadow(color: Colors.grey.withValues(alpha: 0.05), blurRadius: 6, spreadRadius: 2),
         ],
       ),
       child: Row(
@@ -344,14 +408,13 @@ class _ZabetDashboardScreenState extends State<ZabetDashboardScreen> {
         children: [
           Checkbox(
             value: isChecked,
-            activeColor: const Color(0xFF334411),
+            activeColor: Colors.deepOrange,
             onChanged: (bool? value) {
               setState(() {
                 _mealStatus[index] = value ?? false;
               });
             },
           ),
-          const SizedBox(width: 0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

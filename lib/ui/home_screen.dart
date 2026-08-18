@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:zabet_app/core/app_colors.dart';
 import 'package:zabet_app/screen/zabet_diet_screen.dart';
 import 'package:zabet_app/screen/zabet_timer_screen.dart';
 import '../screen/zabet_tests.dart';
-import 'screen/zabet_workouts.dart'; // تأكد إن مسار الملف صح حسب ما سميته عندك
-
+import 'screen/zabet_workouts.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -20,16 +19,15 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // 1. شريط التنقل العلوي
               Row(
                 children: [
                   Row(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(13), // تخليها دائرية
+                        borderRadius: BorderRadius.circular(13),
                         child: Image.asset(
-                          'assets/images/app_logo.ico', // مسار صورة اللوجو بتاعك
+                          'assets/images/app_logo.png',
                           width: 28,
                           height: 28,
                           fit: BoxFit.cover,
@@ -39,37 +37,32 @@ class HomeScreen extends StatelessWidget {
                       const Text(
                         'ZABET',
                         style: TextStyle(
-                          fontSize: 28, // كبّرنا الحجم
-                          fontWeight: FontWeight.w900, // خليناه عريض جداً (Bold تقيل)
-                          letterSpacing: 1.0, // وسّعنا المسافات بين الحروف عشان تاخد العرض والطول
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
                           color: AppColors.primaryDark,
                         ),
                       ),
                     ],
                   ),
-
                 ],
               ),
               const SizedBox(height: 24),
 
               // 2. عنوان الترحيب
-              const Text(
-                'HELLO ZABET!',
-                style: TextStyle(
+              Text(
+                'hello_zabet'.tr(),
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primaryDark,
                 ),
               ),
-              const SizedBox(height: 16),
-
-
               const SizedBox(height: 24),
 
-              // 4. شبكة الخدمات - الصف الأول
+              // 3. شبكة الخدمات - الصف الأول
               Row(
                 children: <Widget>[
-                  // --- كارت الـ Workouts الجديد متغلف ومتقفل صح ---
                   Expanded(
                     child: InkWell(
                       onTap: () {
@@ -83,17 +76,15 @@ class HomeScreen extends StatelessWidget {
                         icon: Icons.fitness_center,
                         iconColor: AppColors.cardWorkoutsBg,
                         iconIconColor: AppColors.cardWorkouts,
-                        title: 'Zabet Workouts',
+                        title: 'zabet_workouts'.tr(),
                         titleColor: AppColors.cardWorkouts,
-                        description: 'Explore pro training programs & heavy lifting splits.',
+                        description: 'workouts_desc'.tr(),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // --- كارت الـ Timer متغلف ومتقفل بالملي ---
                   Expanded(
                     child: InkWell(
-                      // جوه الـ InkWell أو GestureDetector الخاص بـ Zabet Timer
                       onTap: () {
                         Navigator.push(
                           context,
@@ -105,9 +96,9 @@ class HomeScreen extends StatelessWidget {
                         icon: Icons.timer_outlined,
                         iconColor: AppColors.cardTimerBg,
                         iconIconColor: AppColors.cardTimer,
-                        title: 'Zabet Timer',
+                        title: 'zabet_timer'.tr(),
                         titleColor: AppColors.cardTimer,
-                        description: 'Set your rest time between sets with zero tolerance.',
+                        description: 'timer_desc'.tr(),
                       ),
                     ),
                   ),
@@ -116,10 +107,8 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // شبكة الخدمات - الصف الثاني
-              // 143. شبكة الخدمات - الصف الثاني
               Row(
                 children: <Widget>[
-                  // --- كارت الـ Diet متغلف بالـ InkWell وجاهز للتنقل ---
                   Expanded(
                     child: InkWell(
                       onTap: () {
@@ -130,21 +119,18 @@ class HomeScreen extends StatelessWidget {
                           ),
                         );
                       },
-
-
                       borderRadius: BorderRadius.circular(16),
                       child: _buildServiceCard(
                         icon: Icons.restaurant_menu,
                         iconColor: AppColors.cardDietBg,
                         iconIconColor: AppColors.cardDiet,
-                        title: 'Zabet Diet',
+                        title: 'zabet_diet'.tr(),
                         titleColor: AppColors.cardDiet,
-                        description: 'Turn your meals into clean fuel for your muscles.',
+                        description: 'diet_desc'.tr(),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // --- كارت الـ Tests متغلف بالـ InkWell وجاهز للتنقل ---
                   Expanded(
                     child: InkWell(
                       onTap: () {
@@ -158,9 +144,9 @@ class HomeScreen extends StatelessWidget {
                         icon: Icons.analytics_outlined,
                         iconColor: AppColors.cardTestsBg,
                         iconIconColor: AppColors.cardTests,
-                        title: 'Zabet Tests',
+                        title: 'zabet_tests'.tr(),
                         titleColor: AppColors.cardTests,
-                        description: 'Track your progress in pull-ups, push-ups, and running.',
+                        description: 'tests_desc'.tr(),
                       ),
                     ),
                   ),
@@ -169,33 +155,31 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               InkWell(
-
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   width: double.infinity,
-                  height: 140, // حافظ على نفس الارتفاع اللي إنت كاتباه في كودك الأصلي
+                  height: 140,
                   decoration: BoxDecoration(
-                    color: Colors.black, // الخلفية سوداء سادة تماماً زي ما طلبت
-                    borderRadius: BorderRadius.circular(16), // نفس حواف إطار كودك الأصلي
-                    // لو عندك boxShadow أو border في كودك الأصلي سيبهم زي ما هما هنا
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0), // مسافة أمان عشان الأيقونة متلمسش الإطار
+                      padding: const EdgeInsets.all(16.0),
                       child: Image.asset(
-                        "assets/images/app_logo.ico", // مسار الأيقونة اللي هتصممها وتضيفها في الـ assets
-                        fit: BoxFit.contain, // بيضمن إن الأيقونة تحافظ على أبعادها المربعة في النص
+                        "assets/images/app_logo.png",
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
-                )
+                ),
               ),
-            ], // قفلة الـ children بتاعة الـ Column (سطر 229 في الصورة)
-          ), // قفلة الـ Column نفسه (سطر 230 في الصورة)
-        ), // قفلة الـ SingleChildScrollView (سطر 231 في الصورة)
-      ), // قفلة الـ SafeArea (سطر 232 في الصورة)
-    ); // قفلة الـ Scaffold (سطر 233 في الصورة)
-  } // القوس المتعرج الأخير الخالص المقفل لميثود الـ build (سطر 234 في الصورة)
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildServiceCard({
     required IconData icon,
@@ -252,7 +236,7 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             description,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 11,
               color: AppColors.textGrey,
               height: 1.3,

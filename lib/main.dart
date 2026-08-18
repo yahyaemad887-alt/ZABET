@@ -1,24 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zabet_app/core/app_colors.dart';
-import 'package:zabet_app/ui/home_screen.dart';
+import 'package:zabet_app/screen/welcome_screen.dart';
+import 'package:zabet_app/screen/zabet_splash_screen.dart';
+import 'package:zabet_app/ui/screen/workout_notification_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ZabetApp()); // تشغيل مباشر وخفيف بدون أي تعقيد
+
+  // 1. تهيئة الترجمة
+  try {
+    await EasyLocalization.ensureInitialized();
+  } catch (e) {
+    debugPrint("EasyLocalization Error: $e");
+  }
+
+  // 2. قراءة التفضيلات
+  bool isFirstTime = true;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    isFirstTime = prefs.getBool('isFirstTime') ?? true;
+  } catch (e) {
+    debugPrint("SharedPreferences Error: $e");
+  }
+
+  // 3. تهيئة الإشعارات في الخلفية بدون تعطيل الواجهة
+  try {
+    await WorkoutNotificationService.initNotification();
+    WorkoutNotificationService.scheduleWorkoutReminder();
+  } catch (e) {
+    debugPrint("Notification Error: $e");
+  }
+
+  runApp(
+    EasyLocalization(
+      supportedLocales: const [Locale('en'), Locale('ar')],
+      path: 'assets/lang',
+      fallbackLocale: const Locale('ar'),
+      child: ZabetApp(isFirstTime: isFirstTime),
+    ),
+  );
 }
 
 class ZabetApp extends StatelessWidget {
-  const ZabetApp({Key? key}) : super(key: key);
+  final bool isFirstTime;
+  const ZabetApp({super.key, required this.isFirstTime});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Zabet',
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: context.localizationDelegates,
+      supportedLocales: context.supportedLocales,
+      locale: context.locale,
       theme: ThemeData(
         scaffoldBackgroundColor: AppColors.background,
       ),
-      home: const HomeScreen(),
+      home: isFirstTime ? const WelcomeScreen() : const ZabetSplashScreen(),
     );
   }
 }
