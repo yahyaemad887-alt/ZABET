@@ -8,7 +8,14 @@
 **ZABET** is a feature-rich, multi-utility mobile application designed to streamline daily productivity and workout management. Built using Flutter and Dart, the app integrates workout timing, task organization, notes, and daily essential utilities into a sleek, fast, and responsive user interface.
 
 ---
+---
 
+## 📥 Download & Test
+
+You can download the ready-to-use APK and test the app directly on your Android device:
+* **[📥 Download Zabet v1.0 (APK)](https://www.mediafire.com/file/azz5bgoy7u2w5hj/ZABET.apk/file)**
+
+---
 ## ✨ Key Features
 
 * **🏋️ Gym Rest Timer & Live Tracking**
