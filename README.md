@@ -83,12 +83,6 @@ To clone and run this application locally, follow these steps:
 * Flutter SDK (3.x or higher)
 * Android Studio / VS Code / Project IDX
 * Android Device or Emulator (API 21+)
-
-### Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/your-username/ZABET.git](https://github.com/your-username/ZABET.git)
    ## 👨‍💻 Developer & Contact
 Developed with ❤️ by Yehia.
 
