@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:zabet_app/core/app_colors.dart';
-import 'package:zabet_app/screen/zabet_splash_screen.dart'; // توجيه لشاشة Splash المطلوبة
+import 'package:zabet_app/screen/zabet_splash_screen.dart';
 
 import '../ui/screen/workout_notification_service.dart';
 
@@ -14,6 +14,18 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  // قائمة الـ 8 لغات اللي ضفناها للتطبيق
+  final List<Map<String, String>> _languages = [
+    {'code': 'ar', 'name': 'العربية'},
+    {'code': 'en', 'name': 'English'},
+    {'code': 'fr', 'name': 'Français'},
+    {'code': 'es', 'name': 'Español'},
+    {'code': 'de', 'name': 'Deutsch'},
+    {'code': 'pt', 'name': 'Português'},
+    {'code': 'ru', 'name': 'Русский'},
+    {'code': 'tr', 'name': 'Türkçe'},
+  ];
+
   @override
   Widget build(BuildContext context) {
     final String currentLang = context.locale.languageCode;
@@ -21,12 +33,13 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
@@ -62,32 +75,32 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 32),
 
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _languageButton(
-                    title: 'العربية',
-                    languageCode: 'ar',
-                    isSelected: currentLang == 'ar',
-                  ),
-                  const SizedBox(width: 16),
-                  _languageButton(
-                    title: 'English',
-                    languageCode: 'en',
-                    isSelected: currentLang == 'en',
-                  ),
-                ],
+              // عرض الـ 8 لغات بشكل شبكي (زرارين جنب بعض في كل صف)
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: _languages.map((lang) {
+                  final isSelected = currentLang == lang['code'];
+                  return SizedBox(
+                    width: (MediaQuery.of(context).size.width - 48 - 12) / 2,
+                    child: _languageButton(
+                      title: lang['name']!,
+                      languageCode: lang['code']!,
+                      isSelected: isSelected,
+                    ),
+                  );
+                }).toList(),
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 36),
 
               SizedBox(
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
                   onPressed: () async {
-                    // حفظ المفتاح باسم isFirstTime ومطابقته لـ main.dart
                     try {
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.setBool('isFirstTime', false);
@@ -97,7 +110,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
                     if (!context.mounted) return;
 
-                    // الانتقال لشاشة ZabetSplashScreen
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
@@ -122,6 +134,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -134,30 +147,28 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     required String languageCode,
     required bool isSelected,
   }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () async {
-          await context.setLocale(Locale(languageCode));
-          await WorkoutNotificationService.scheduleWorkoutReminder();
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: isSelected ? Colors.deepOrange.withValues(alpha: 0.1) : Colors.transparent,
-            border: Border.all(
-              color: isSelected ? Colors.deepOrange : Colors.grey[400]!,
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: () async {
+        await context.setLocale(Locale(languageCode));
+        await WorkoutNotificationService.scheduleWorkoutReminder();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.deepOrange.withValues(alpha: 0.1) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? Colors.deepOrange : Colors.grey[400]!,
+            width: 2,
           ),
-          child: Center(
-            child: Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? Colors.deepOrange : Colors.grey[700],
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? Colors.deepOrange : Colors.grey[700],
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ),

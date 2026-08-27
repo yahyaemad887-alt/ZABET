@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:vibration/vibration.dart';
 
 class ZabetTimerScreen extends StatefulWidget {
   const ZabetTimerScreen({super.key});
@@ -18,8 +21,14 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
   Timer? _timer;
   bool _isRunning = false;
 
+  // 1. ميزات جديدة: كتم الصوت وحساب الجولات
+  bool _isMuted = false;
+  int _currentSet = 1;
+  int _totalSets = 4;
+
   late AnimationController _pulseController;
   late FlutterLocalNotificationsPlugin _notificationsPlugin;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -30,6 +39,19 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
     )..repeat(reverse: true);
 
     _initNotifications();
+    _initAudioPlayer();
+  }
+
+  void _initAudioPlayer() async {
+    await _audioPlayer.setAudioContext(
+       AudioContext(
+        android: AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.alarm,
+          audioFocus: AndroidAudioFocus.gainTransient,
+        ),
+      ),
+    );
   }
 
   void _initNotifications() async {
@@ -44,7 +66,6 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidPlugin != null) {
-      // 1. إنشاء القناة صراحةً لضمان عمل الإشعارات في نسخة الـ Release
       const AndroidNotificationChannel channel = AndroidNotificationChannel(
         'zabet_timer_channel',
         'مؤقت ضابط',
@@ -53,9 +74,40 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
       );
 
       await androidPlugin.createNotificationChannel(channel);
-
-      // 2. طلب إذن الإشعارات لأندرويد 13+
       await androidPlugin.requestNotificationsPermission();
+    }
+  }
+
+  // تشغيل صوت التنبيه إذا لم يكن الوضع صامتاً
+  void _playAlarmSound() async {
+    if (_isMuted) return;
+    try {
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+      await _audioPlayer.play(AssetSource('sounds/alarm.mp3'));
+    } catch (e) {
+      debugPrint("خطأ في تشغيل الصوت: $e");
+    }
+  }
+
+  void _stopAlarmSound() async {
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      debugPrint("خطأ في إيقاف الصوت: $e");
+    }
+  }
+
+  // 2. نمط اهتزاز احترافي مخصص (3 نبضات)
+  void _triggerVibrationPattern() async {
+    try {
+      bool? hasVibrator = await Vibration.hasVibrator();
+      if (hasVibrator == true) {
+        Vibration.vibrate(pattern: [0, 400, 150, 400, 150, 600]);
+      } else {
+        HapticFeedback.heavyImpact();
+      }
+    } catch (e) {
+      HapticFeedback.heavyImpact();
     }
   }
 
@@ -71,7 +123,7 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
       ongoing: true,
       autoCancel: false,
       showWhen: false,
-      icon: '@mipmap/launcher_icon', // استخدام أيقونة التطبيق المسجلة دائماً
+      icon: '@mipmap/launcher_icon',
       styleInformation: BigTextStyleInformation(
         'timer_notification_big_text'.tr(args: [timeStr]),
         contentTitle: 'timer_notification_title'.tr(),
@@ -99,7 +151,11 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
 
   void _startTimer() {
     if (_isRunning) return;
+    _stopAlarmSound();
     HapticFeedback.mediumImpact();
+
+    // 3. تفعيل بقاء الشاشة مضاءة عند بدء المؤقت
+    WakelockPlus.enable();
 
     setState(() {
       _isRunning = true;
@@ -116,8 +172,9 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
         _updateNotification(_remainingSeconds);
       } else {
         _stopTimer();
-        HapticFeedback.heavyImpact();
+        _triggerVibrationPattern(); // تشغيل الاهتزاز المخصص
         _cancelNotification();
+        _playAlarmSound();
         _showTimerFinishedDialog();
       }
     });
@@ -125,6 +182,8 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
 
   void _pauseTimer() {
     _timer?.cancel();
+    _stopAlarmSound();
+    WakelockPlus.disable(); // السماح للشاشة بالنوم عند الإيقاف المؤقت
     HapticFeedback.selectionClick();
     _cancelNotification();
     setState(() {
@@ -134,6 +193,7 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
 
   void _resetTimer() {
     _pauseTimer();
+    _stopAlarmSound();
     HapticFeedback.lightImpact();
     setState(() {
       _remainingSeconds = _totalSeconds;
@@ -170,6 +230,7 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
 
   void _stopTimer() {
     _timer?.cancel();
+    WakelockPlus.disable(); // إلغاء قفل الشاشة عند الانتهاء
     setState(() {
       _isRunning = false;
     });
@@ -178,6 +239,7 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
   void _showTimerFinishedDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -193,14 +255,43 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
             ),
           ],
         ),
-        content: Text(
-          'timer_finished_body'.tr(),
-          style: const TextStyle(color: Colors.black54, fontSize: 14),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'timer_finished_body'.tr(),
+              style: const TextStyle(color: Colors.black54, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            // عرض تقدم الجولة الحالية في النافذة
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.deepOrange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('set_completed'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF1E293B))),
+                  Text("$_currentSet / $_totalSets", style: const TextStyle(color: Colors.deepOrange, fontWeight: FontWeight.w900, fontSize: 15)),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () {
+              _stopAlarmSound();
+              Vibration.cancel();
               Navigator.pop(context);
+              setState(() {
+                if (_currentSet < _totalSets) {
+                  _currentSet++;
+                }
+              });
               _resetTimer();
             },
             child: Text(
@@ -224,6 +315,9 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
     _timer?.cancel();
     _cancelNotification();
     _pulseController.dispose();
+    _audioPlayer.dispose();
+    WakelockPlus.disable();
+    Vibration.cancel();
     super.dispose();
   }
 
@@ -242,6 +336,24 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFF1E293B)),
+        actions: [
+          // زر زر كتم/تشغيل الصوت
+          IconButton(
+            icon: Icon(
+              _isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+              color: _isMuted ? Colors.redAccent : Colors.deepOrange,
+            ),
+            tooltip: _isMuted ? 'unmute'.tr() : 'mute'.tr(),
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _isMuted = !_isMuted;
+                if (_isMuted) _stopAlarmSound();
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -249,6 +361,72 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
+              // 4. ودجت عداد الجولات (Sets Counter)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.fitness_center_rounded, color: Colors.deepOrange, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'set_progress'.tr(args: ['$_currentSet', '$_totalSets']),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF1E293B)),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.remove_circle_outline, size: 22, color: Colors.black54),
+                          onPressed: () {
+                            if (_totalSets > 1) {
+                              setState(() {
+                                _totalSets--;
+                                if (_currentSet > _totalSets) _currentSet = _totalSets;
+                              });
+                            }
+                          },
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.add_circle_outline, size: 22, color: Colors.deepOrange),
+                          onPressed: () {
+                            setState(() {
+                              _totalSets++;
+                            });
+                          },
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.refresh_rounded, size: 20, color: Colors.black45),
+                          tooltip: 'reset_sets'.tr(),
+                          onPressed: () {
+                            setState(() {
+                              _currentSet = 1;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
               ScaleTransition(
                 scale: _isRunning
                     ? Tween<double>(begin: 1.0, end: 1.02).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut))
@@ -284,7 +462,7 @@ class _ZabetTimerScreenState extends State<ZabetTimerScreen> with SingleTickerPr
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                           decoration: BoxDecoration(
-                            color: _isRunning ? Colors.deepOrange.withValues(alpha: 0.1) : const Color(0xFFE2E8F0),
+                            color: _isRunning ? Colors.deepOrange.withOpacity(0.1) : const Color(0xFFE2E8F0),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(

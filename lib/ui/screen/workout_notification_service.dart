@@ -1,5 +1,5 @@
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -14,14 +14,31 @@ class WorkoutNotificationService {
     const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('@mipmap/ic_launcher');
 
+    const DarwinInitializationSettings initializationSettingsIOS =
+    DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
     const InitializationSettings initializationSettings = InitializationSettings(
       android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
     );
 
     await _notificationsPlugin.initialize(initializationSettings);
   }
 
-  // 2. جدولة الإشعارات كل 4 ساعات (10:00, 14:00, 18:00, 22:00)
+  // 2. طلب إذن الإشعارات (مطلوب لأندرويد 13+ و iOS)
+  static Future<void> requestPermissions() async {
+    final androidPlugin = _notificationsPlugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      await androidPlugin.requestNotificationsPermission();
+    }
+  }
+
+  // 3. جدولة الإشعارات كل 4 ساعات (10:00, 14:00, 18:00, 22:00)
   static Future<void> scheduleWorkoutReminder() async {
     await _notificationsPlugin.cancelAll();
 
@@ -37,7 +54,6 @@ class WorkoutNotificationService {
     const NotificationDetails platformChannelSpecifics =
     NotificationDetails(android: androidPlatformChannelSpecifics);
 
-    // مواعيد الإشعارات (10 صباحاً - 2 ظهراً - 6 مساءً - 10 مساءً)
     final List<int> reminderHours = [10, 14, 18, 22];
 
     for (int i = 0; i < reminderHours.length; i++) {
@@ -47,10 +63,10 @@ class WorkoutNotificationService {
         'workout_notif_body'.tr(),
         _nextInstanceOfHour(reminderHours[i]),
         platformChannelSpecifics,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
         UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time, // تكرار يومي في نفس المواعيد
+        matchDateTimeComponents: DateTimeComponents.time, // تكرار يومي في نفس الموعد
       );
     }
   }

@@ -9,7 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  audioplayers: ^6.1.0
   provider: ^6.1.2
+  wakelock_plus: ^1.2.8
+  vibration: ^2.0.1
   shared_preferences: ^2.2.0
   cupertino_icons: ^1.0.8
   flutter_local_notifications: ^17.2.4
@@ -25,6 +28,7 @@ flutter:
   assets:
     - assets/images/app_logo.png
     - assets/lang/
+    - assets/sounds/alarm.mp3
 
 flutter_launcher_icons:
   android: "launcher_icon"

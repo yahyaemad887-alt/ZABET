@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:zabet_app/core/app_colors.dart';
 
 // ==========================================
 // 1. Data Models (هيكلية البيانات المترجمة)
@@ -276,26 +278,54 @@ class ZabetWorkoutsScreen extends StatelessWidget {
     final systems = WorkoutData.getSystems();
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('zabet_workouts'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryDark),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'zabet_workouts'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+        ),
         centerTitle: true,
       ),
       body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: systems.length,
         itemBuilder: (context, index) {
+          final system = systems[index];
           return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            margin: const EdgeInsets.only(bottom: 12),
             elevation: 2,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shadowColor: Colors.black12,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              title: Text(systems[index].systemName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.blue),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.cardWorkoutsBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.fitness_center, color: AppColors.cardWorkouts),
+              ),
+              title: Text(
+                system.systemName,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+              ),
+              subtitle: Text(
+                '${system.days.length} ${'days_count'.tr()}',
+                style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.cardWorkouts),
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => SystemDaysScreen(system: systems[index]),
+                    builder: (context) => SystemDaysScreen(system: system),
                   ),
                 );
               },
@@ -318,18 +348,40 @@ class SystemDaysScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(system.systemName, style: const TextStyle(fontSize: 18)),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryDark),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          system.systemName,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+        ),
       ),
       body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         itemCount: system.days.length,
         itemBuilder: (context, index) {
           final day = system.days[index];
           return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            elevation: 2,
+            shadowColor: Colors.black12,
             child: ListTile(
-              title: Text(day.getDayName(context), style: const TextStyle(fontWeight: FontWeight.bold)),
-              trailing: const Icon(Icons.fitness_center),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              title: Text(
+                day.getDayName(context),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+              ),
+              subtitle: Text(
+                '${day.exercises.length} ${'exercises_count'.tr()}',
+                style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
+              ),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.cardWorkouts),
               onTap: () {
                 Navigator.push(
                   context,
@@ -347,7 +399,7 @@ class SystemDaysScreen extends StatelessWidget {
 }
 
 // ==========================================
-// 5. الشاشة الثالثة: التمارين التفاعلية (Checkboxes)
+// 5. الشاشة الثالثة: التمارين التفاعلية ومؤقت الراحة
 // ==========================================
 
 class ExercisesScreen extends StatefulWidget {
@@ -359,57 +411,326 @@ class ExercisesScreen extends StatefulWidget {
 }
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
+  // مؤقت الراحة التلقائي بين المجاميع
+  Timer? _restTimer;
+  int _restSecondsRemaining = 0;
+  bool _isRestActive = false;
+
+  void _startRestTimer(int seconds) {
+    _restTimer?.cancel();
+    setState(() {
+      _restSecondsRemaining = seconds;
+      _isRestActive = true;
+    });
+
+    _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_restSecondsRemaining > 0) {
+        setState(() => _restSecondsRemaining--);
+      } else {
+        _stopRestTimer();
+      }
+    });
+  }
+
+  void _stopRestTimer() {
+    _restTimer?.cancel();
+    setState(() {
+      _isRestActive = false;
+      _restSecondsRemaining = 0;
+    });
+  }
+
+  // حساب نسبة إنجاز تمارين اليوم
+  double _calculateProgress() {
+    int totalSets = 0;
+    int completedSets = 0;
+    for (var ex in widget.day.exercises) {
+      totalSets += ex.sets;
+      completedSets += ex.completedSets.where((c) => c).length;
+    }
+    return totalSets == 0 ? 0 : completedSets / totalSets;
+  }
+
+  // إعادة ضبط اليوم
+  void _resetDayProgress() {
+    setState(() {
+      for (var ex in widget.day.exercises) {
+        ex.completedSets = List.generate(ex.sets, (_) => false);
+      }
+      _stopRestTimer();
+    });
+  }
+
+  @override
+  void dispose() {
+    _restTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.day.getDayName(context), style: const TextStyle(fontSize: 18)),
-      ),
-      body: ListView.builder(
-        itemCount: widget.day.exercises.length,
-        itemBuilder: (context, index) {
-          final exercise = widget.day.exercises[index];
-          final note = exercise.getNote(context);
+    final progress = _calculateProgress();
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            child: ExpansionTile(
-              title: Text(exercise.getName(context), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(exercise.getReps(context), style: const TextStyle(color: Colors.grey)),
-                  if (note != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      note,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryDark),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          widget.day.getDayName(context),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppColors.cardWorkouts),
+            tooltip: 'reset_day'.tr(),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text('reset_dialog_title'.tr()),
+                  content: Text('reset_dialog_desc'.tr()),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('cancel'.tr()),
                     ),
-                  ]
-                ],
+                    TextButton(
+                      onPressed: () {
+                        _resetDayProgress();
+                        Navigator.pop(context);
+                      },
+                      child: Text('confirm'.tr(), style: const TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // 1. شريط تقدم تمارين اليوم
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'workout_progress'.tr(),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                        ),
+                        Text(
+                          '${(progress * 100).toInt()}%',
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cardWorkouts),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    LinearProgressIndicator(
+                      value: progress,
+                      backgroundColor: AppColors.cardWorkoutsBg,
+                      color: AppColors.cardWorkouts,
+                      minHeight: 8,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ],
+                ),
               ),
-              children: List.generate(exercise.sets, (setIndex) {
-                return CheckboxListTile(
-                  activeColor: Colors.green,
-                  title: Text(
-                    "${'set_label'.tr(args: ['${setIndex + 1}'])}  •  ${exercise.getReps(context)}",
-                    style: TextStyle(
-                      decoration: exercise.completedSets[setIndex] ? TextDecoration.lineThrough : null,
-                      color: exercise.completedSets[setIndex] ? Colors.grey : Colors.black,
+
+              // 2. قائمة التمارين والمجاميع
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.only(left: 12, right: 12, top: 4, bottom: _isRestActive ? 90 : 20),
+                  itemCount: widget.day.exercises.length,
+                  itemBuilder: (context, index) {
+                    final exercise = widget.day.exercises[index];
+                    final note = exercise.getNote(context);
+
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      elevation: 2,
+                      shadowColor: Colors.black12,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      child: ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        title: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                exercise.getName(context),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryDark),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.info_outline, color: AppColors.cardWorkouts, size: 20),
+                              onPressed: () => _showExerciseNotesModal(context, exercise),
+                            ),
+                          ],
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(exercise.getReps(context), style: const TextStyle(color: AppColors.textGrey, fontSize: 13)),
+                            if (note != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                note,
+                                style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ]
+                          ],
+                        ),
+                        children: List.generate(exercise.sets, (setIndex) {
+                          final isCompleted = exercise.completedSets[setIndex];
+                          return CheckboxListTile(
+                            activeColor: AppColors.cardWorkouts,
+                            title: Text(
+                              "${'set_label'.tr(args: ['${setIndex + 1}'])}  •  ${exercise.getReps(context)}",
+                              style: TextStyle(
+                                decoration: isCompleted ? TextDecoration.lineThrough : null,
+                                color: isCompleted ? Colors.grey : AppColors.primaryDark,
+                                fontSize: 14,
+                              ),
+                            ),
+                            value: isCompleted,
+                            onChanged: (bool? value) {
+                              setState(() {
+                                exercise.completedSets[setIndex] = value ?? false;
+                              });
+                              if (value == true) {
+                                _startRestTimer(60); // بدء راحة 60 ثانية تلقائياً
+                              }
+                            },
+                          );
+                        }),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          // 3. شريط مؤقت الراحة التفاعلي أسفل الشاشة
+          if (_isRestActive)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryDark,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer, color: Colors.orangeAccent, size: 28),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('rest_timer_title'.tr(), style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          Text(
+                            '${_restSecondsRemaining ~/ 60}:${(_restSecondsRemaining % 60).toString().padLeft(2, '0')}',
+                            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _startRestTimer(_restSecondsRemaining + 15),
+                      child: const Text('+15s', style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: _stopRestTimer,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // نافذة التعليمات والملاحظات للتمرين
+  void _showExerciseNotesModal(BuildContext context, Exercise exercise) {
+    final note = exercise.getNote(context);
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.fitness_center, color: AppColors.cardWorkouts),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      exercise.getName(context),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
                     ),
                   ),
-                  value: exercise.completedSets[setIndex],
-                  onChanged: (bool? value) {
-                    setState(() {
-                      exercise.completedSets[setIndex] = value ?? false;
-                    });
-                  },
-                );
-              }),
-            ),
-          );
-        },
-      ),
+                ],
+              ),
+              const Divider(height: 24),
+              Text('${'target_sets'.tr()}: ${exercise.sets}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text('${'target_reps'.tr()}: ${exercise.getReps(context)}', style: const TextStyle(color: AppColors.textGrey)),
+              const SizedBox(height: 16),
+              if (note != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.assignment_late_outlined, color: Colors.redAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(note, style: const TextStyle(color: Colors.redAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }

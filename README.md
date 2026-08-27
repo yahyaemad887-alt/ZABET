@@ -1,21 +1,10 @@
 # 🛡️ ZABET (ظابط) - All-in-One Gym & Productivity Companion
 
-[![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
-[![Dart](https://img.shields.io/badge/Dart-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev/)
-[![Platform](https://img.shields.io/badge/Platform-Android-green?style=for-the-badge&logo=android)](https://www.android.com/)
-[![Localization](https://img.shields.io/badge/Language-Arabic%20%7C%20English-orange?style=for-the-badge)](#)
 
 **ZABET** is a feature-rich, multi-utility mobile application designed to streamline daily productivity and workout management. Built using Flutter and Dart, the app integrates workout timing, task organization, notes, and daily essential utilities into a sleek, fast, and responsive user interface.
 
 ---
----
 
-## 📥 Download & Test
-
-You can download the ready-to-use APK and test the app directly on your Android device:
-* **[📥 Download Zabet v1.0 (APK)](https://www.mediafire.com/file/azz5bgoy7u2w5hj/ZABET.apk/file)**
-
----
 ## ✨ Key Features
 
 * **🏋️ Gym Rest Timer & Live Tracking**
@@ -30,16 +19,18 @@ You can download the ready-to-use APK and test the app directly on your Android 
 * **⚡ Integrated Everyday Utilities**
     * Built-in Calculator, Stopwatch, Alarms, and Flashlight toggles.
 
-* **🌐 Dual Language & Persistent Onboarding**
-    * Seamless Arabic & English localization switching.
-    * Smart onboarding preference caching (`SharedPreferences`).
+* **🌐 Full Multi-Language Support & Onboarding**
+    * Supports 8 languages: Arabic (`ar`), English (`en`), French (`fr`), Spanish (`es`), German (`de`), Portuguese (`pt`), Russian (`ru`), and Turkish (`tr`).
+    * Interactive Welcome/Onboarding screen with a responsive grid layout for initial language selection.
+    * Fixed-direction top-center language switcher on the Home Screen with a bottom sheet interface for instant language switching.
+    * Smart preference caching via `SharedPreferences` and `easy_localization`.
 
 ---
 
 ## 🛠️ Tech Stack & Architecture
 
 * **Framework:** [Flutter](https://flutter.dev) (Dart)
-* **Localization:** `easy_localization` (Arabic / English)
+* **Localization:** `easy_localization` (Multi-language support)
 * **Local Notifications:** `flutter_local_notifications`
 * **Local Storage & Caching:** `shared_preferences`
 * **UI & Animation:** Custom UI components, pulse animation controllers, Material 3 design elements.
@@ -52,23 +43,22 @@ You can download the ready-to-use APK and test the app directly on your Android 
   <table>
     <tr>
       <td align="center"><img src="screenshots/1.png" width="220"/><br/><sub>Screen 1</sub></td>
-      <td align="center"><img src="screenshots/2.png" width="220"/><br/><sub>Screen 2</sub></td>
-      <td align="center"><img src="screenshots/3.png" width="220"/><br/><sub>Screen 3</sub></td>
+      <td align="center"><img src="screenshots/2.jpg" width="220"/><br/><sub>Screen 2</sub></td>
+      <td align="center"><img src="screenshots/3.jpg" width="220"/><br/><sub>Screen 3</sub></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/4.png" width="220"/><br/><sub>Screen 4</sub></td>
-      <td align="center"><img src="screenshots/5.png" width="220"/><br/><sub>Screen 5</sub></td>
-      <td align="center"><img src="screenshots/6.png" width="220"/><br/><sub>Screen 6</sub></td>
+      <td align="center"><img src="screenshots/4.jpg" width="220"/><br/><sub>Screen 4</sub></td>
+      <td align="center"><img src="screenshots/5.jpg" width="220"/><br/><sub>Screen 5</sub></td>
+      <td align="center"><img src="screenshots/6.jpg" width="220"/><br/><sub>Screen 6</sub></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/7.png" width="220"/><br/><sub>Screen 7</sub></td>
-      <td align="center"><img src="screenshots/8.png" width="220"/><br/><sub>Screen 8</sub></td>
-      <td align="center"><img src="screenshots/9.png" width="220"/><br/><sub>Screen 9</sub></td>
+      <td align="center"><img src="screenshots/7.jpg" width="220"/><br/><sub>Screen 7</sub></td>
+      <td align="center"><img src="screenshots/8.jpg" width="220"/><br/><sub>Screen 8</sub></td>
+      <td align="center"><img src="screenshots/9.jpg" width="220"/><br/><sub>Screen 9</sub></td>
     </tr>
     <tr>
-      <td align="center"><img src="screenshots/10.png" width="220"/><br/><sub>Screen 10</sub></td>
-      <td align="center"><img src="screenshots/11.png" width="220"/><br/><sub>Screen 11</sub></td>
-      <td align="center"><img src="screenshots/12.png" width="220"/><br/><sub>Screen 12</sub></td>
+      <td align="center"><img src="screenshots/10.jpg" width="220"/><br/><sub>Screen 10</sub></td>
+      <td align="center"><img src="screenshots/11.jpg" width="220"/><br/><sub>Screen 11</sub></td>
     </tr>
   </table>
 </div>
@@ -83,10 +73,9 @@ To clone and run this application locally, follow these steps:
 * Flutter SDK (3.x or higher)
 * Android Studio / VS Code / Project IDX
 * Android Device or Emulator (API 21+)
-   ## 👨‍💻 Developer & Contact
-Developed with ❤️ by Yehia.
 
-WhatsApp: +20 155 342 7179
+### Installation
 
-📄 License
-This project is developed for portfolio and personal application usage.
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/yahyaemad887-alt/ZABET](https://github.com/yahyaemad887-alt/ZABET)

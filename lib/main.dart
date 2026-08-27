@@ -25,17 +25,27 @@ void main() async {
     debugPrint("SharedPreferences Error: $e");
   }
 
-  // 3. تهيئة الإشعارات في الخلفية بدون تعطيل الواجهة
+  // 3. تهيئة الإشعارات وطلب الأذونات في الخلفية بدون تعطيل الواجهة
   try {
     await WorkoutNotificationService.initNotification();
-    WorkoutNotificationService.scheduleWorkoutReminder();
+    await WorkoutNotificationService.requestPermissions();
+    await WorkoutNotificationService.scheduleWorkoutReminder();
   } catch (e) {
     debugPrint("Notification Error: $e");
   }
 
   runApp(
     EasyLocalization(
-      supportedLocales: const [Locale('en'), Locale('ar')],
+      supportedLocales: const [
+        Locale('ar'), // العربية
+        Locale('en'), // الإنجليزية
+        Locale('fr'), // الفرنسية
+        Locale('es'), // الإسبانية
+        Locale('de'), // الألمانية
+        Locale('pt'), // البرتغالية
+        Locale('ru'), // الروسية
+        Locale('tr'), // التركية
+      ],
       path: 'assets/lang',
       fallbackLocale: const Locale('ar'),
       child: ZabetApp(isFirstTime: isFirstTime),
