@@ -1,14 +1,23 @@
 import 'dart:ui' as ui;
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:zabet_app/core/app_colors.dart';
 import 'package:zabet_app/screen/zabet_diet_screen.dart';
 import 'package:zabet_app/screen/zabet_tests.dart';
 import 'package:zabet_app/screen/zabet_timer_screen.dart';
 import 'package:zabet_app/ui/screen/zabet_workouts.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
 
   // قائمة الـ 8 لغات المتاحة في التطبيق
   final List<Map<String, String>> _languages = const [
@@ -21,6 +30,38 @@ class HomeScreen extends StatelessWidget {
     {'code': 'ru', 'name': 'Русский'},
     {'code': 'tr', 'name': 'Türkçe'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-8862179519549672/2901887666',
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
 
   void _showLanguageBottomSheet(BuildContext context) {
     showModalBottomSheet(
@@ -95,40 +136,35 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. شريط التنقل العلوي مع زر اللغة في المنتصف تماماً وثابت الاتجاه
+              // 1. شريط التنقل العلوي مع اللوجو وزر اللغة
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(13),
-                            child: Image.asset(
-                              'assets/images/app_logo.png',
-                              width: 28,
-                              height: 28,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'ZABET',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1.0,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
-                        ],
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: Image.asset(
+                          'assets/images/app_logo.png',
+                          width: 28,
+                          height: 28,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'ZABET',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ],
                   ),
 
-                  // زر تغيير اللغة في المنتصف ومحمي باتجاه LTR ثابت
+                  // زر تغيير اللغة
                   Directionality(
                     textDirection: ui.TextDirection.ltr,
                     child: InkWell(
@@ -168,10 +204,6 @@ class HomeScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ),
-
-                  const Expanded(
-                    child: SizedBox(),
                   ),
                 ],
               ),
@@ -275,29 +307,23 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 24),
-
-              // 4. البانر السفلي
-              Container(
-                width: double.infinity,
-                height: 140,
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Image.asset(
-                      "assets/images/app_logo.png",
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
+
+      // 4. حاوية إعلان البانر المحجوزة في الأسفل
+      bottomNavigationBar: _isAdLoaded && _bannerAd != null
+          ? SafeArea(
+        child: Container(
+          color: Colors.transparent,
+          alignment: Alignment.center,
+          width: _bannerAd!.size.width.toDouble(),
+          height: _bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: _bannerAd!),
+        ),
+      )
+          : null,
     );
   }
 }
@@ -312,7 +338,7 @@ class _ServiceCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ServiceCard({
-    Key? key,
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.iconIconColor,
@@ -320,7 +346,7 @@ class _ServiceCard extends StatelessWidget {
     required this.titleColor,
     required this.description,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -368,7 +394,7 @@ class _ServiceCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                Icon(Icons.arrow_forward_ios, color: titleColor, size: 14),
+                Icon(Icons.arrow_forward_ios_rounded, color: titleColor, size: 14),
               ],
             ),
             const SizedBox(height: 6),

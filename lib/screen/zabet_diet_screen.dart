@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // ==========================================
 // 1. الموديل ومحرك الحسابات الذكي للماكروز
@@ -80,6 +81,8 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
     final int? age = prefs.getInt('user_age');
     final int? goalIndex = prefs.getInt('user_goal');
 
+    if (!mounted) return;
+
     if (weight != null && height != null && age != null) {
       setState(() {
         _savedMetrics = UserMetrics(
@@ -98,6 +101,7 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
   }
 
   void _onMetricsSaved(UserMetrics newMetrics) {
+    if (!mounted) return;
     setState(() {
       _savedMetrics = newMetrics;
     });
@@ -109,6 +113,7 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
     await prefs.remove('user_height');
     await prefs.remove('user_age');
     await prefs.remove('user_goal');
+    if (!mounted) return;
     setState(() {
       _savedMetrics = null;
     });
@@ -133,6 +138,7 @@ class _ZabetDietScreenState extends State<ZabetDietScreen> {
       onGoalChanged: (newGoal) async {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('user_goal', newGoal.index);
+        if (!mounted) return;
         setState(() {
           _savedMetrics = UserMetrics(
             weightKg: _savedMetrics!.weightKg,
@@ -164,11 +170,37 @@ class _ZabetMetricsInputFormState extends State<ZabetMetricsInputForm> {
   final _ageController = TextEditingController();
   FitnessGoal _selectedGoal = FitnessGoal.maintain;
 
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-8862179519549672/2901887666',
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) setState(() => _isAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
   @override
   void dispose() {
     _weightController.dispose();
     _heightController.dispose();
     _ageController.dispose();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -183,6 +215,8 @@ class _ZabetMetricsInputFormState extends State<ZabetMetricsInputForm> {
       await prefs.setDouble('user_height', height);
       await prefs.setInt('user_age', age);
       await prefs.setInt('user_goal', _selectedGoal.index);
+
+      if (!mounted) return;
 
       final metrics = UserMetrics(
         weightKg: weight,
@@ -281,6 +315,17 @@ class _ZabetMetricsInputFormState extends State<ZabetMetricsInputForm> {
           ),
         ),
       ),
+      bottomNavigationBar: _isAdLoaded && _bannerAd != null
+          ? SafeArea(
+        child: Container(
+          color: Colors.transparent,
+          alignment: Alignment.center,
+          width: _bannerAd!.size.width.toDouble(),
+          height: _bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: _bannerAd!),
+        ),
+      )
+          : null,
     );
   }
 }
@@ -305,6 +350,9 @@ class ZabetDietDashboardScreen extends StatefulWidget {
 }
 
 class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
   double _waterConsumedMl = 0;
   double _consumedCalories = 0;
   double _consumedProtein = 0;
@@ -324,10 +372,34 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
   void initState() {
     super.initState();
     _loadDailyTrackerData();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-8862179519549672/2901887666',
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) setState(() => _isAdLoaded = true);
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadDailyTrackerData() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       _waterConsumedMl = prefs.getDouble('water_consumed') ?? 0.0;
       _supplementsStatus['creatine'] = prefs.getBool('supp_creatine') ?? false;
@@ -368,6 +440,7 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
       fat += engine.targetFatGrams * 0.25;
     }
 
+    if (!mounted) return;
     setState(() {
       _consumedCalories = calories;
       _consumedProtein = protein;
@@ -379,17 +452,21 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
   Future<void> _addWater(double amountMl) async {
     final engine = ZabetDietEngine(widget.userMetrics);
     final maxWaterMl = engine.targetWaterLiters * 1000;
-    setState(() {
-      _waterConsumedMl = (_waterConsumedMl + amountMl).clamp(0.0, maxWaterMl + 1000);
-    });
+    if (mounted) {
+      setState(() {
+        _waterConsumedMl = (_waterConsumedMl + amountMl).clamp(0.0, maxWaterMl + 1000);
+      });
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('water_consumed', _waterConsumedMl);
   }
 
   Future<void> _resetWater() async {
-    setState(() {
-      _waterConsumedMl = 0.0;
-    });
+    if (mounted) {
+      setState(() {
+        _waterConsumedMl = 0.0;
+      });
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('water_consumed', 0.0);
   }
@@ -428,22 +505,23 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
 
   Widget _buildPresetTile(String title, double cal, double p, double c, double f, ZabetDietEngine engine) {
     return ListTile(
-    contentPadding: EdgeInsets.zero,
-    title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-    subtitle: Text('$cal ${'kcal_unit'.tr()} | P:${p}g | C:${c}g | F:${f}g', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-    trailing: ElevatedButton(
-    style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
-    onPressed: () {
-    setState(() {
-    _consumedCalories += cal;
-    _consumedProtein += p;
-    _consumedCarbs += c;
-    _consumedFat += f;
-    });
-    Navigator.pop(context);
-    },
-    child: Text('add_btn'.tr(), style: const TextStyle(fontSize: 12)),
-    ),
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text('$cal ${'kcal_unit'.tr()} | P:${p}g | C:${c}g | F:${f}g', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      trailing: ElevatedButton(
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange, foregroundColor: Colors.white),
+        onPressed: () {
+          if (!mounted) return;
+          setState(() {
+            _consumedCalories += cal;
+            _consumedProtein += p;
+            _consumedCarbs += c;
+            _consumedFat += f;
+          });
+          Navigator.pop(context);
+        },
+        child: Text('add_btn'.tr(), style: const TextStyle(fontSize: 12)),
+      ),
     );
   }
 
@@ -641,6 +719,17 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: _isAdLoaded && _bannerAd != null
+          ? SafeArea(
+        child: Container(
+          color: Colors.transparent,
+          alignment: Alignment.center,
+          width: _bannerAd!.size.width.toDouble(),
+          height: _bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: _bannerAd!),
+        ),
+      )
+          : null,
     );
   }
 
@@ -823,6 +912,7 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
                   fontWeight: isChecked ? FontWeight.bold : FontWeight.normal,
                 ),
                 onSelected: (bool selected) async {
+                  if (!mounted) return;
                   setState(() {
                     _supplementsStatus[key] = selected;
                   });
@@ -855,6 +945,7 @@ class _ZabetDietDashboardScreenState extends State<ZabetDietDashboardScreen> {
             value: isChecked,
             activeColor: Colors.deepOrange,
             onChanged: (val) {
+              if (!mounted) return;
               setState(() {
                 _mealStatus[index] = val ?? false;
               });

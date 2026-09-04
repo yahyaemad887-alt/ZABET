@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:zabet_app/core/app_colors.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // ==========================================
-// 1. Data Models (هيكلية البيانات المترجمة)
+// 1. Data Models
 // ==========================================
 
 class Exercise {
@@ -67,13 +67,12 @@ class WorkoutSystem {
 }
 
 // ==========================================
-// 2. Data Repository (بيانات الأنظمة كاملة)
+// 2. Data Repository
 // ==========================================
 
 class WorkoutData {
   static List<WorkoutSystem> getSystems() {
     return [
-      // ---------------- النظام الأول: Yahya Split ----------------
       WorkoutSystem(
         systemName: "Yahya Split",
         days: [
@@ -186,8 +185,6 @@ class WorkoutData {
           ),
         ],
       ),
-
-      // ---------------- النظام الثاني: Arnold Split ----------------
       WorkoutSystem(
         systemName: "Arnold Split (5 Days)",
         days: [
@@ -220,8 +217,6 @@ class WorkoutData {
           ),
         ],
       ),
-
-      // ---------------- النظام الثالث: Push/Pull/Legs ----------------
       WorkoutSystem(
         systemName: "Push/Pull/Legs (PPL)",
         days: [
@@ -278,17 +273,17 @@ class ZabetWorkoutsScreen extends StatelessWidget {
     final systems = WorkoutData.getSystems();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFFF8F9FA),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryDark),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           'zabet_workouts'.tr(),
-          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
         ),
         centerTitle: true,
       ),
@@ -300,27 +295,27 @@ class ZabetWorkoutsScreen extends StatelessWidget {
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             elevation: 2,
-            shadowColor: Colors.black12,
+            shadowColor: Colors.black.withValues(alpha: 0.08),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.cardWorkoutsBg,
+                  color: Colors.deepOrange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.fitness_center, color: AppColors.cardWorkouts),
+                child: const Icon(Icons.fitness_center_rounded, color: Colors.deepOrange),
               ),
               title: Text(
                 system.systemName,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
               ),
               subtitle: Text(
                 '${system.days.length} ${'days_count'.tr()}',
-                style: const TextStyle(color: AppColors.textGrey, fontSize: 13),
+                style: const TextStyle(color: Colors.black54, fontSize: 13),
               ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.cardWorkouts),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.deepOrange),
               onTap: () {
                 Navigator.push(
                   context,
@@ -348,17 +343,17 @@ class SystemDaysScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFFF8F9FA),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryDark),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           system.systemName,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
         ),
       ),
       body: ListView.builder(
@@ -370,18 +365,18 @@ class SystemDaysScreen extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 2,
-            shadowColor: Colors.black12,
+            shadowColor: Colors.black.withValues(alpha: 0.08),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               title: Text(
                 day.getDayName(context),
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
               ),
               subtitle: Text(
                 '${day.exercises.length} ${'exercises_count'.tr()}',
-                style: const TextStyle(color: AppColors.textGrey, fontSize: 12),
+                style: const TextStyle(color: Colors.black54, fontSize: 12),
               ),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.cardWorkouts),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.deepOrange),
               onTap: () {
                 Navigator.push(
                   context,
@@ -411,10 +406,38 @@ class ExercisesScreen extends StatefulWidget {
 }
 
 class _ExercisesScreenState extends State<ExercisesScreen> {
-  // مؤقت الراحة التلقائي بين المجاميع
   Timer? _restTimer;
   int _restSecondsRemaining = 0;
   bool _isRestActive = false;
+
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-8862179519549672/2901887666',
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
 
   void _startRestTimer(int seconds) {
     _restTimer?.cancel();
@@ -425,7 +448,9 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
     _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_restSecondsRemaining > 0) {
-        setState(() => _restSecondsRemaining--);
+        if (mounted) {
+          setState(() => _restSecondsRemaining--);
+        }
       } else {
         _stopRestTimer();
       }
@@ -434,13 +459,14 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
 
   void _stopRestTimer() {
     _restTimer?.cancel();
-    setState(() {
-      _isRestActive = false;
-      _restSecondsRemaining = 0;
-    });
+    if (mounted) {
+      setState(() {
+        _isRestActive = false;
+        _restSecondsRemaining = 0;
+      });
+    }
   }
 
-  // حساب نسبة إنجاز تمارين اليوم
   double _calculateProgress() {
     int totalSets = 0;
     int completedSets = 0;
@@ -451,7 +477,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     return totalSets == 0 ? 0 : completedSets / totalSets;
   }
 
-  // إعادة ضبط اليوم
   void _resetDayProgress() {
     setState(() {
       for (var ex in widget.day.exercises) {
@@ -464,6 +489,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
   @override
   void dispose() {
     _restTimer?.cancel();
+    _bannerAd?.dispose();
     super.dispose();
   }
 
@@ -472,39 +498,41 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     final progress = _calculateProgress();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFFF8F9FA),
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: AppColors.primaryDark),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF1E293B)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           widget.day.getDayName(context),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: AppColors.cardWorkouts),
+            icon: const Icon(Icons.refresh_rounded, color: Colors.deepOrange),
             tooltip: 'reset_day'.tr(),
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('reset_dialog_title'.tr()),
+                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Text('reset_dialog_title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                   content: Text('reset_dialog_desc'.tr()),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: Text('cancel'.tr()),
+                      child: Text('cancel'.tr(), style: const TextStyle(color: Colors.black54)),
                     ),
                     TextButton(
                       onPressed: () {
                         _resetDayProgress();
                         Navigator.pop(context);
                       },
-                      child: Text('confirm'.tr(), style: const TextStyle(color: Colors.red)),
+                      child: Text('confirm'.tr(), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -517,15 +545,14 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
         children: [
           Column(
             children: [
-              // 1. شريط تقدم تمارين اليوم
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 6),
                   ],
                 ),
                 child: Column(
@@ -536,19 +563,19 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                       children: [
                         Text(
                           'workout_progress'.tr(),
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                         ),
                         Text(
                           '${(progress * 100).toInt()}%',
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.cardWorkouts),
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.deepOrange),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: progress,
-                      backgroundColor: AppColors.cardWorkoutsBg,
-                      color: AppColors.cardWorkouts,
+                      backgroundColor: const Color(0xFFE2E8F0),
+                      color: Colors.deepOrange,
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -556,7 +583,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 ),
               ),
 
-              // 2. قائمة التمارين والمجاميع
               Expanded(
                 child: ListView.builder(
                   padding: EdgeInsets.only(left: 12, right: 12, top: 4, bottom: _isRestActive ? 90 : 20),
@@ -568,7 +594,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       elevation: 2,
-                      shadowColor: Colors.black12,
+                      shadowColor: Colors.black.withValues(alpha: 0.05),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       child: ExpansionTile(
                         tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -577,11 +603,11 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                             Expanded(
                               child: Text(
                                 exercise.getName(context),
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.primaryDark),
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1E293B)),
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.info_outline, color: AppColors.cardWorkouts, size: 20),
+                              icon: const Icon(Icons.info_outline_rounded, color: Colors.deepOrange, size: 20),
                               onPressed: () => _showExerciseNotesModal(context, exercise),
                             ),
                           ],
@@ -589,7 +615,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(exercise.getReps(context), style: const TextStyle(color: AppColors.textGrey, fontSize: 13)),
+                            Text(exercise.getReps(context), style: const TextStyle(color: Colors.black54, fontSize: 13)),
                             if (note != null) ...[
                               const SizedBox(height: 4),
                               Text(
@@ -602,12 +628,12 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         children: List.generate(exercise.sets, (setIndex) {
                           final isCompleted = exercise.completedSets[setIndex];
                           return CheckboxListTile(
-                            activeColor: AppColors.cardWorkouts,
+                            activeColor: Colors.deepOrange,
                             title: Text(
                               "${'set_label'.tr(args: ['${setIndex + 1}'])}  •  ${exercise.getReps(context)}",
                               style: TextStyle(
                                 decoration: isCompleted ? TextDecoration.lineThrough : null,
-                                color: isCompleted ? Colors.grey : AppColors.primaryDark,
+                                color: isCompleted ? Colors.grey : const Color(0xFF1E293B),
                                 fontSize: 14,
                               ),
                             ),
@@ -617,7 +643,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                                 exercise.completedSets[setIndex] = value ?? false;
                               });
                               if (value == true) {
-                                _startRestTimer(60); // بدء راحة 60 ثانية تلقائياً
+                                _startRestTimer(60);
                               }
                             },
                           );
@@ -630,7 +656,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             ],
           ),
 
-          // 3. شريط مؤقت الراحة التفاعلي أسفل الشاشة
           if (_isRestActive)
             Positioned(
               left: 16,
@@ -639,7 +664,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryDark,
+                  color: const Color(0xFF1E293B),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 10, offset: const Offset(0, 4)),
@@ -647,7 +672,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.timer, color: Colors.orangeAccent, size: 28),
+                    const Icon(Icons.timer_rounded, color: Colors.orangeAccent, size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -667,7 +692,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                       child: const Text('+15s', style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold)),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: const Icon(Icons.close_rounded, color: Colors.white),
                       onPressed: _stopRestTimer,
                     ),
                   ],
@@ -676,10 +701,19 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             ),
         ],
       ),
+      bottomNavigationBar: _isAdLoaded && _bannerAd != null
+          ? SafeArea(
+        child: Container(
+          color: Colors.transparent,
+          width: _bannerAd!.size.width.toDouble(),
+          height: _bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: _bannerAd!),
+        ),
+      )
+          : null,
     );
   }
 
-  // نافذة التعليمات والملاحظات للتمرين
   void _showExerciseNotesModal(BuildContext context, Exercise exercise) {
     final note = exercise.getNote(context);
     showModalBottomSheet(
@@ -694,12 +728,12 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.fitness_center, color: AppColors.cardWorkouts),
+                  const Icon(Icons.fitness_center_rounded, color: Colors.deepOrange),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       exercise.getName(context),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
                     ),
                   ),
                 ],
@@ -707,7 +741,7 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
               const Divider(height: 24),
               Text('${'target_sets'.tr()}: ${exercise.sets}', style: const TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
-              Text('${'target_reps'.tr()}: ${exercise.getReps(context)}', style: const TextStyle(color: AppColors.textGrey)),
+              Text('${'target_reps'.tr()}: ${exercise.getReps(context)}', style: const TextStyle(color: Colors.black54)),
               const SizedBox(height: 16),
               if (note != null) ...[
                 Container(

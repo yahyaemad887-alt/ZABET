@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 // ==========================================
 // 1. Data Model (موديل بيانات الاختبارات)
@@ -68,19 +69,22 @@ class TestModel {
 // ==========================================
 
 class ZabetTestsScreen extends StatefulWidget {
-  const ZabetTestsScreen({Key? key}) : super(key: key);
+  const ZabetTestsScreen({super.key});
 
   @override
   State<ZabetTestsScreen> createState() => _ZabetTestsScreenState();
 }
 
 class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
+  BannerAd? _bannerAd;
+  bool _isAdLoaded = false;
+
   final List<TestModel> tests = [
     TestModel(
       id: "pullups",
       titleKey: "test_pullups",
       unitKey: "unit_reps",
-      icon: Icons.fitness_center,
+      icon: Icons.fitness_center_rounded,
       color: Colors.blue,
       target: 10,
       currentScore: 5,
@@ -89,7 +93,7 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
       id: "pushups",
       titleKey: "test_pushups",
       unitKey: "unit_reps",
-      icon: Icons.accessibility_new,
+      icon: Icons.accessibility_new_rounded,
       color: Colors.orange,
       target: 40,
       currentScore: 20,
@@ -98,7 +102,7 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
       id: "situps",
       titleKey: "test_situps",
       unitKey: "unit_reps",
-      icon: Icons.airline_seat_recline_extra,
+      icon: Icons.airline_seat_recline_extra_rounded,
       color: Colors.purple,
       target: 40,
       currentScore: 25,
@@ -107,7 +111,7 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
       id: "run1500",
       titleKey: "test_run1500",
       unitKey: "unit_seconds",
-      icon: Icons.directions_run,
+      icon: Icons.directions_run_rounded,
       color: Colors.green,
       target: 360,
       currentScore: 420,
@@ -119,10 +123,38 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
   void initState() {
     super.initState();
     _loadSavedScores();
+    _loadBannerAd();
+  }
+
+  void _loadBannerAd() {
+    _bannerAd = BannerAd(
+      adUnitId: 'ca-app-pub-8862179519549672/2901887666',
+      request: const AdRequest(),
+      size: AdSize.banner,
+      listener: BannerAdListener(
+        onAdLoaded: (ad) {
+          if (mounted) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (ad, err) {
+          ad.dispose();
+        },
+      ),
+    )..load();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSavedScores() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
     setState(() {
       for (var test in tests) {
         final savedVal = prefs.getInt('zabet_test_${test.id}');
@@ -134,9 +166,11 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
   }
 
   Future<void> _updateScore(TestModel test, int newScore) async {
-    setState(() {
-      test.currentScore = newScore;
-    });
+    if (mounted) {
+      setState(() {
+        test.currentScore = newScore;
+      });
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('zabet_test_${test.id}', newScore);
   }
@@ -183,7 +217,7 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -216,6 +250,17 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: _isAdLoaded && _bannerAd != null
+          ? SafeArea(
+        child: Container(
+          color: Colors.transparent,
+          alignment: Alignment.center,
+          width: _bannerAd!.size.width.toDouble(),
+          height: _bannerAd!.size.height.toDouble(),
+          child: AdWidget(ad: _bannerAd!),
+        ),
+      )
+          : null,
     );
   }
 
@@ -344,7 +389,7 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
                       }
                     },
                     child: const Icon(
-                      Icons.remove_circle_outline,
+                      Icons.remove_circle_outline_rounded,
                       color: Colors.redAccent,
                       size: 26,
                     ),
@@ -366,7 +411,7 @@ class _ZabetTestsScreenState extends State<ZabetTestsScreen> {
                       _updateScore(test, test.currentScore + (test.isTime ? 5 : 1));
                     },
                     child: const Icon(
-                      Icons.add_circle_outline,
+                      Icons.add_circle_outline_rounded,
                       color: Colors.green,
                       size: 26,
                     ),
@@ -449,10 +494,11 @@ class _StopwatchBottomSheetState extends State<_StopwatchBottomSheet> {
   void _toggleTimer() {
     if (_isRunning) {
       _timer?.cancel();
-      setState(() => _isRunning = false);
+      if (mounted) setState(() => _isRunning = false);
     } else {
-      setState(() => _isRunning = true);
+      if (mounted) setState(() => _isRunning = true);
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
         setState(() {
           _elapsedSeconds++;
         });
@@ -462,10 +508,12 @@ class _StopwatchBottomSheetState extends State<_StopwatchBottomSheet> {
 
   void _resetTimer() {
     _timer?.cancel();
-    setState(() {
-      _elapsedSeconds = 0;
-      _isRunning = false;
-    });
+    if (mounted) {
+      setState(() {
+        _elapsedSeconds = 0;
+        _isRunning = false;
+      });
+    }
   }
 
   String _formatTime(int totalSeconds) {
@@ -501,7 +549,7 @@ class _StopwatchBottomSheetState extends State<_StopwatchBottomSheet> {
             children: [
               ElevatedButton.icon(
                 onPressed: _toggleTimer,
-                icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow),
+                icon: Icon(_isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded),
                 label: Text(_isRunning ? 'stopwatch_pause'.tr() : 'stopwatch_start'.tr()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isRunning ? Colors.amber.shade800 : Colors.green,
@@ -511,7 +559,7 @@ class _StopwatchBottomSheetState extends State<_StopwatchBottomSheet> {
               const SizedBox(width: 12),
               OutlinedButton.icon(
                 onPressed: _resetTimer,
-                icon: const Icon(Icons.refresh),
+                icon: const Icon(Icons.refresh_rounded),
                 label: Text('stopwatch_reset'.tr()),
               ),
             ],
