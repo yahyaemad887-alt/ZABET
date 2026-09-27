@@ -6,7 +6,7 @@
 ---fff
 
 ## ✨ Key Features
-
+   
 * **🏋️ Gym Rest Timer & Live Tracking**
     * Real-time workout rest timer with quick time adjustments (+30s / -15s).
     * Preset duration shortcuts for quick rest intervals (30s, 60s, 90s, 2m, 3m).
